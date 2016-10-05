@@ -1,10 +1,21 @@
 #!/bin/bash
 
+set -x
+
 if [[ -z "$KAFKA_PORT" ]]; then
     export KAFKA_PORT=9092
 fi
 if [[ -z "$KAFKA_ADVERTISED_PORT" ]]; then
     export KAFKA_ADVERTISED_PORT=$(docker port `hostname` $KAFKA_PORT | sed -r "s/.*:(.*)/\1/g")
+fi
+#  kubernetes only static broker id assignment
+if [[ -n "$KUBE_POD_NAME" ]]; then
+    KAFKA_BROKER_ID=`echo $KUBE_POD_NAME | cut -d \\- -f 2`
+    if [[ "$KAFKA_BROKER_ID" =~ ^-?[0-9]+$ ]]; then  #  tests if broker id is an integer
+        export KAFKA_BROKER_ID=$KAFKA_BROKER_ID
+    else
+        unset KAFKA_BROKER_ID
+    fi
 fi
 if [[ -z "$KAFKA_BROKER_ID" ]]; then
     # By default auto allocate broker ID
